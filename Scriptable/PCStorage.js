@@ -6,6 +6,7 @@
 
 const PCGeoJSON = importModule("PCGeoJSON")
 const PCNetwork = importModule("PCNetwork")
+const PCTimeout = importModule("PCTimeout")
 
 const APP_FOLDER_NAME = "Point Collector"
 const COLLECTION_FILE_NAME = "points.geojson"
@@ -77,32 +78,13 @@ function enqueuePoint(feature) {
   return queue
 }
 
-// Races `promise` against a timer so an iCloud download that hangs while
-// offline doesn't block the script forever.
-function withTimeout(promise, seconds) {
-  let timer
-  const timeoutPromise = new Promise((resolve, reject) => {
-    timer = Timer.schedule(seconds, false, () => reject(new Error("iCloud request timed out")))
-  })
-  return Promise.race([promise, timeoutPromise]).then(
-    (value) => {
-      if (timer) timer.invalidate()
-      return value
-    },
-    (error) => {
-      if (timer) timer.invalidate()
-      throw error
-    }
-  )
-}
-
 async function readCollectionFromICloud() {
   const fm = icloudFm()
   const path = collectionPath()
   if (!fm.fileExists(path)) return PCGeoJSON.emptyFeatureCollection()
 
   if (!fm.isFileDownloaded(path)) {
-    await withTimeout(fm.downloadFileFromiCloud(path), ICLOUD_DOWNLOAD_TIMEOUT_SECONDS)
+    await PCTimeout.withTimeout(fm.downloadFileFromiCloud(path), ICLOUD_DOWNLOAD_TIMEOUT_SECONDS)
   }
 
   try {

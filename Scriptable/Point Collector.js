@@ -9,7 +9,7 @@
 // iCloud collection the next time the script runs with a connection.
 
 const PCGeoJSON = importModule("PCGeoJSON")
-const PCNetwork = importModule("PCNetwork")
+const PCLocation = importModule("PCLocation")
 const PCStorage = importModule("PCStorage")
 
 async function presentAlert(title, message) {
@@ -36,8 +36,8 @@ async function presentAddPoint() {
 
   let location
   try {
-    Location.setAccuracyToBest()
-    location = await Location.current()
+    const result = await PCLocation.getCurrentReading({ timeoutSeconds: 20 })
+    location = result.reading
   } catch (error) {
     await presentAlert("Location Unavailable", `Could not get your current location: ${error}`)
     return

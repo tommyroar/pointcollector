@@ -24,30 +24,37 @@ automatically the next time the script runs with a connection.
   `FeatureCollection`, deduping by each point's unique id so nothing is
   double-counted even if a merge is retried. You can also trigger this
   manually from the **Sync Now** menu item.
+- **Home screen widget**: a separate widget script shows the last-known
+  latitude/longitude/altitude/accuracy and how many points are queued for
+  sync, without opening the app. See [Home screen widget](#home-screen-widget)
+  below.
 
 ## Project layout
 
 ```
 Scriptable/
-  Point Collector.js   Main script — the UITable-based UI and app entry point
-  PCGeoJSON.js          Pure GeoJSON helpers (feature creation, merge/dedupe)
-  PCNetwork.js          Connectivity check used to decide online vs. queued
-  PCStorage.js          iCloud FeatureCollection + local queue persistence
+  Point Collector.js         Main script — the UITable-based UI and app entry point
+  Point Collector Widget.js   Home screen widget — last-known location + pending count
+  PCGeoJSON.js                 Pure GeoJSON helpers (feature creation, merge/dedupe)
+  PCLocation.js                GPS reads with a timeout + last-known-reading cache
+  PCNetwork.js                 Connectivity check used to decide online vs. queued
+  PCStorage.js                 iCloud FeatureCollection + local queue persistence
+  PCTimeout.js                 Shared promise/timer race helper
 test/
-  PCGeoJSON.test.js      Jest tests for the pure GeoJSON logic
+  PCGeoJSON.test.js             Jest tests for the pure GeoJSON logic
 ```
 
 `PCGeoJSON.js` has no dependency on Scriptable-only globals, so it's the one
-module covered by an automated (Node/Jest) test suite. `PCNetwork.js` and
-`PCStorage.js` rely on Scriptable's `Request`, `FileManager`, and `Timer`
-APIs and are exercised by hand in the Scriptable app.
+module covered by an automated (Node/Jest) test suite. The rest rely on
+Scriptable's `Request`, `FileManager`, `Location`, `Timer`, and widget APIs
+and are exercised by hand in the Scriptable app.
 
 ## Installing on your iPhone
 
 1. Install [Scriptable](https://apps.apple.com/app/scriptable/id1405459188)
    and make sure iCloud Drive is enabled for it (Settings → your name →
    iCloud → iCloud Drive → Scriptable).
-2. Copy the four files under `Scriptable/` into the Scriptable app's iCloud
+2. Copy every file under `Scriptable/` into the Scriptable app's iCloud
    folder: `iCloud Drive/Scriptable/`. The easiest way is to clone this repo
    somewhere and copy (or symlink) those files in via the Files app / Finder,
    since Scriptable loads scripts and `importModule` dependencies from that
@@ -55,12 +62,24 @@ APIs and are exercised by hand in the Scriptable app.
 3. Open the **Point Collector** script from the Scriptable app. On first run
    it will ask for location permission ("While Using the App" is enough).
 
+### Home screen widget
+
+1. Long-press the home screen → **+** → search for **Scriptable** → add a
+   small or medium widget.
+2. Edit the widget and set **Script** to `Point Collector Widget`.
+3. The widget shows the last GPS reading it could get (falling back to the
+   last cached reading if a fresh fix times out) and how many points are
+   still queued for sync. iOS — not the script — decides how often a widget
+   actually refreshes (typically every 15-30 minutes), so this is a
+   periodically-updated snapshot, not a live, continuously-ticking readout.
+   Open the widget script directly in Scriptable for an on-demand reading.
+
 ## Development
 
-The Scriptable-specific modules (`PCNetwork.js`, `PCStorage.js`, and the main
-script) can only be run inside the Scriptable app, since they use its
-`FileManager`, `Location`, `Request`, `Alert`, `UITable`, and `Timer` APIs.
-The pure GeoJSON logic in `PCGeoJSON.js` runs anywhere and has a Jest suite:
+The Scriptable-specific modules and both scripts can only be run inside the
+Scriptable app, since they use its `FileManager`, `Location`, `Request`,
+`Alert`, `UITable`, `Timer`, and widget APIs. The pure GeoJSON logic in
+`PCGeoJSON.js` runs anywhere and has a Jest suite:
 
 ```
 npm install
