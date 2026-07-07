@@ -1,0 +1,41 @@
+name: Deploy to Scriptable (Mac mini)
+
+# Copies Scriptable/*.js to the local iCloud Drive "Scriptable" folder on the
+# org's self-hosted runner (a Mac mini), so macOS's own iCloud sync carries
+# the update to any iPhone running the Point Collector script. See the
+# README's "Continuous deploy to iPhone" section for details, including how
+# to confirm this repo has access to the org runner and that its labels
+# match `runs-on` below.
+#
+# Gated on the Test workflow succeeding, and workflow_run only fires with
+# the branch that triggered the upstream run — a fork's pull_request run
+# never has head_branch == main, so this never touches the self-hosted
+# runner for untrusted code. Only a real push/merge to main deploys.
+
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Copy Scriptable files to iCloud Drive
+        run: |
+          set -euo pipefail
+          dest="$HOME/Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents"
+          if [ ! -d "$dest" ]; then
+            echo "iCloud Scriptable folder not found at: $dest" >&2
+            echo "Confirm the exact folder name under ~/Library/Mobile Documents/ and update this path." >&2
+            exit 1
+          fi
+          for f in Scriptable/*.js; do
+            cp -v "$f" "$dest/$(basename "$f")"
+          done
