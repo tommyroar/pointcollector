@@ -1,0 +1,12 @@
+{
+  "name": "pointcollector",
+  "version": "1.0.0",
+  "description": "iPhone Scriptable app for collecting GeoJSON points into an iCloud-synced FeatureCollection, with offline queueing.",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
